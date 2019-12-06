@@ -183,6 +183,33 @@ spec:
         limits:
           cpu: 500m
           memory: 128Mi
+  kafkaExporter:
+    groupRegex: ".*" 
+    topicRegex: ".*" 
+    resources: 
+      requests:
+        cpu: 200m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 128Mi
+    logging: debug 
+    enableSaramaLogging: true
+    template: 
+      pod:
+        metadata:
+          labels:
+            name: kafka-exporter
+        securityContext:
+          runAsUser: 1000001
+          fsGroup: 0
+        terminationGracePeriodSeconds: 120
+    readinessProbe: 
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe: 
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
   entityOperator:
     topicOperator: {}
     userOperator: {}
