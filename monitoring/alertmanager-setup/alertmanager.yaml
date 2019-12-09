@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 5m
+route:
+  group_by: ['job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: email
+receivers:
+- name: email
+  email_configs:
+  - to: agraj.mng@gmail.com
+    text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+    

@@ -6,6 +6,7 @@ metadata:
     app: strimzi
 spec:
   replicas: 1
+  logLevel: debug
 ---
 apiVersion: v1
 kind: Service
