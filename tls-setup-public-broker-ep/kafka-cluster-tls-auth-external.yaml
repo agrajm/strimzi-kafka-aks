@@ -11,11 +11,10 @@ spec:
       plain: {}
       external:
         type: loadbalancer
-        tls: true
+        tls: true     # TLS encryption - default true
         authentication:
-          type: tls
+          type: tls   # TLS Authentication 
     config:
-      ssl.client.auth: "required"
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2

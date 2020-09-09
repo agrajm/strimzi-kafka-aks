@@ -4,5 +4,6 @@ This repository is a WIP and holds demo scripts and YAML files for different sce
 
 1. TLS client Authentication and Simple ACL Authorization - [Blog Post](https://medium.com/@agrajm/running-kafka-on-azure-kubernetes-service) & [Code](https://github.com/agrajm/strimzi-kafka-aks/tree/master/tls)  
 2. Monitoring Kafka using Prometheus - [Blog Post](https://medium.com/@agrajm/monitoring-kafka-on-kubernetes-with-prometheus-5b1d1518102) & [Code](https://github.com/agrajm/strimzi-kafka-aks/tree/master/monitoring)
-3. Exposing Kafka Brokers to Clients outside the Cluster 
+3. Exposing Kafka Brokers to Clients outside the Cluster - [Code](https://github.com/agrajm/strimzi-kafka-aks/tree/master/tls-setup-public-broker-ep)
 4. Configuring other pieces of the larger Confluent Ecosystem - Schema Registry, Kafka Connect etc.
+5. Monitoring Kafka with Prometheus & Azure Monitor 

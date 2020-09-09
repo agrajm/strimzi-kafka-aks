@@ -22,6 +22,8 @@ It creates a bunch of
 
 # Deploy Custom Resource for Kafka 
 
+Add a listener for external: type: loadBalancer -- no TLS auth specified for clients - that will be done as next step
+
 ```
 kubectl apply -f kafka-cluster.yaml
 ```
@@ -84,6 +86,17 @@ After importing this information, create this file `client-ssl.properties`
 export KAFKA_EXTERNAL_BROKER_IP=$(kubectl get svc kafka-cluster-kafka-external-bootstrap -n tls-kafka -o json | jq -r '.status.loadBalancer.ingress[0].ip')
 export KAFKA_HOME=/mnt/c/Users/agmangal/softwares/linux/kafka_2.12-2.5.0
 export TOPIC_NAME=test-strimzi-topic
+```
+
+## Client SSL properties file 
+
+Create a new file with following info
+```
+bootstrap.servers=$KAFKA_EXTERNAL_BROKER_IP:9094  # Replace with actual value
+security.protocol=SSL
+ssl.truststore.location=$JAVA_HOME/jre/lib/security/cacerts   # Replace with actual value
+ssl.truststore.password=changeit # Whatever is your password - this is default
+```
 
 # on a terminal, start producer and send a few messages
 $KAFKA_HOME/bin/kafka-console-producer.sh --broker-list $KAFKA_EXTERNAL_BROKER_IP:9094 --topic $TOPIC_NAME --producer.config client-ssl.properties
@@ -92,4 +105,7 @@ $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_EXTERNAL_BRO
 
 ```
 
+# TLS Authentication
+
+Now that we can connect to Kafka running in Kubernetes from outside clients with TLS encryption -- we just have imported the Cluster CA certs in our local truststore, the next step is to allow TLS authentication
 
