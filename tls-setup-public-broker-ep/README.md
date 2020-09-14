@@ -63,12 +63,18 @@ kubectl run kafka-consumer -ti --image=strimzi/kafka:latest-kafka-2.4.0 --namesp
 
 # Importing CA Cert in TrustSTore 
 
-To use Kafka CLI or local Java Apps to connect to Kafka Cluster on kubernetes - configure the JDK TrustStore to import the CA Cert & Password 
+To use Kafka CLI or local Java Apps to connect to Kafka Cluster on kubernetes - configure the JDK TrustStore to import the Cluster CA Cert & Password 
+
+```
+export CLUSTER_NAME=kafka-cluster
+kubectl get secret $CLUSTER_NAME-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+kubectl get secret $CLUSTER_NAME-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 --decode > ca.password
+```
 
 ```
 export CERT_FILE_PATH=ca.crt
 export CERT_PASSWORD_FILE_PATH=ca.password
-export KEYSTORE_LOCATION=$JAVA_HOME/jre/lib/security/cacerts
+export KEYSTORE_LOCATION=$JAVA_HOME/lib/security/cacerts
 export PASSWORD=`cat $CERT_PASSWORD_FILE_PATH`
 export CA_CERT_ALIAS=strimzi-kafka-cert
 # you will prompted for the truststore password. for JDK truststore, the default 
@@ -78,17 +84,13 @@ sudo keytool -importcert -alias $CA_CERT_ALIAS -file $CERT_FILE_PATH -keystore $
 sudo keytool -list -alias $CA_CERT_ALIAS -keystore $KEYSTORE_LOCATION
 ```
 
-After importing this information, create this file `client-ssl.properties`
+After importing this certificate, create this file `client-ssl.properties`
 
-# Producers & Consumers (connect from Outside)
+## Client SSL properties file 
 
 ```
 export KAFKA_EXTERNAL_BROKER_IP=$(kubectl get svc kafka-cluster-kafka-external-bootstrap -n tls-kafka -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-export KAFKA_HOME=/mnt/c/Users/agmangal/softwares/linux/kafka_2.12-2.5.0
-export TOPIC_NAME=test-strimzi-topic
 ```
-
-## Client SSL properties file 
 
 Create a new file with following info
 ```
@@ -98,14 +100,74 @@ ssl.truststore.location=$JAVA_HOME/jre/lib/security/cacerts   # Replace with act
 ssl.truststore.password=changeit # Whatever is your password - this is default
 ```
 
-# on a terminal, start producer and send a few messages
-$KAFKA_HOME/bin/kafka-console-producer.sh --broker-list $KAFKA_EXTERNAL_BROKER_IP:9094 --topic $TOPIC_NAME --producer.config client-ssl.properties
-# on another terminal, start consumer
-$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_EXTERNAL_BROKER_IP:9094 --topic $TOPIC_NAME --consumer.config client-ssl.properties --from-beginning
+# Producers & Consumers (connect from Outside)
 
+```
+export KAFKA_HOME=/mnt/c/Users/agmangal/softwares/linux/kafka_2.12-2.5.0
+export TOPIC_NAME=test-strimzi-topic
+```
+
+## on a terminal, start producer and send a few messages
+```
+$KAFKA_HOME/bin/kafka-console-producer.sh --broker-list $KAFKA_EXTERNAL_BROKER_IP:9094 --topic $TOPIC_NAME --producer.config client-ssl.properties
+```
+# on another terminal, start consumer
+```
+$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_EXTERNAL_BROKER_IP:9094 --topic $TOPIC_NAME --consumer.config client-ssl.properties --from-beginning
 ```
 
 # TLS Authentication
 
 Now that we can connect to Kafka running in Kubernetes from outside clients with TLS encryption -- we just have imported the Cluster CA certs in our local truststore, the next step is to allow TLS authentication
 
+# Import the Kafka User Private Key & Certificate into KeyStore for Kafka Client
+
+```
+export KAFKA_USER_NAME=my-user
+kubectl get secret $KAFKA_USER_NAME -o jsonpath='{.data.user\.crt}' | base64 --decode > user.crt
+kubectl get secret $KAFKA_USER_NAME -o jsonpath='{.data.user\.key}' | base64 --decode > user.key
+kubectl get secret $KAFKA_USER_NAME -o jsonpath='{.data.user\.p12}' | base64 --decode > user.p12
+kubectl get secret $KAFKA_USER_NAME -o jsonpath='{.data.user\.password}' | base64 --decode > user.password
+```
+
+Create another keystore
+
+```
+export USER_P12_FILE_PATH=user.p12
+export USER_KEY_PASSWORD_FILE_PATH=user.password
+export KEYSTORE_NAME=kafka-auth-keystore.jks
+export KEYSTORE_PASSWORD=foobar
+export PASSWORD=`cat $USER_KEY_PASSWORD_FILE_PATH`
+sudo keytool -importkeystore -deststorepass $KEYSTORE_PASSWORD -destkeystore $KEYSTORE_NAME -srckeystore $USER_P12_FILE_PATH -srcstorepass $PASSWORD -srcstoretype PKCS12
+sudo keytool -list -alias $KAFKA_USER_NAME -keystore $KEYSTORE_NAME
+```
+
+# Import Cluster CA Cert into TrustStore for Kafka Client
+
+```
+export CLUSTER_NAME=my-kafka-cluster
+kubectl get secret $CLUSTER_NAME-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+kubectl get secret $CLUSTER_NAME-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 --decode > ca.password
+```
+
+Import
+
+```
+export CERT_FILE_PATH=ca.crt
+export CERT_PASSWORD_FILE_PATH=ca.password
+export KEYSTORE_LOCATION=$JAVA_HOME/jre/lib/security/cacerts
+export PASSWORD=`cat $CERT_PASSWORD_FILE_PATH`
+sudo keytool -importcert -alias strimzi-kafka-cert -file $CERT_FILE_PATH -keystore $KEYSTORE_LOCATION -keypass $PASSWORD
+```
+
+# client-ssl.properties
+
+```
+bootstrap.servers=[LOADBALANCER_PUBLIC_IP]:9094
+security.protocol=SSL
+ssl.truststore.location=[TRUSTSTORE_LOCATION]
+ssl.truststore.password=changeit
+ssl.keystore.location=kafka-auth-keystore.jks
+ssl.keystore.password=foobar
+ssl.key.password=[contents of user.password file]
+```

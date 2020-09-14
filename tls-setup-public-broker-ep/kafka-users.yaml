@@ -6,9 +6,9 @@ metadata:
     strimzi.io/cluster: kafka-cluster
 spec:
   authentication:
-    type: tls
+    type: tls    # TLS Authentication
   authorization:
-    type: simple
+    type: simple   # Simple ACL Authorization
     acls:
       - resource:
           type: topic
@@ -20,3 +20,6 @@ spec:
           name: test-two
           patternType: literal
         operation: All
+
+
+        
