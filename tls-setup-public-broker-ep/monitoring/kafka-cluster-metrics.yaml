@@ -5,14 +5,14 @@ metadata:
   name: kafka-cluster
   namespace: tls-kafka
 spec:
+  kafkaExporter:
+    topicRegex: ".*"
+    groupRegex: ".*"
+    logging: debug
+    enableSaramaLogging: true
   kafka:
     version: 2.5.0
     replicas: 3
-    kafkaExporter:
-      topicRegex: ".*"
-      groupRegex: ".*"
-      logging: debug
-      enableSaramaLogging: true
     listeners:
       plain: {}
       external:
